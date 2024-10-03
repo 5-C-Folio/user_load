@@ -1,0 +1,100 @@
+{
+    "title": "TaskConfiguration",
+    "type": "object",
+    "properties": {
+        "name": {
+            "title": "Name",
+            "description": "Name of this migration task. The name is being used to call the specific task, and to distinguish tasks of similar types",
+            "type": "string"
+        },
+        "migrationTaskType": {
+            "title": "Migration task type",
+            "description": "The type of migration task you want to perform",
+            "type": "string"
+        },
+        "files": {
+            "title": "Source files",
+            "description": "List of MARC21 files with authority records",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/FileDefinition"
+            }
+        },
+        "ilsFlavour": {
+            "title": "ILS flavour",
+            "description": "The type of ILS you are migrating records from.",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/IlsFlavour"
+                }
+            ]
+        },
+        "tagsToDelete": {
+            "title": "Tags to delete from MARC record",
+            "description": "Tags in the incoming MARC authority that the process should remove before adding them into FOLIO. These tags will be used in the transformation before getting removed.",
+            "default": [],
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "createSourceRecords": {
+            "title": "Create source records",
+            "description": "Controls wheter or not to retain the MARC records in Source Record Storage.",
+            "default": true,
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "name",
+        "migrationTaskType",
+        "files",
+        "ilsFlavour"
+    ],
+    "definitions": {
+        "FileDefinition": {
+            "title": "FileDefinition",
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "title": "File name",
+                    "description": "Name of the file to be processed. The location of the file depends on the context",
+                    "default": "",
+                    "type": "string"
+                },
+                "discovery_suppressed": {
+                    "title": "Discovery suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "staff_suppressed": {
+                    "title": "Staff suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "service_point_id": {
+                    "title": "Service point ID",
+                    "default": "",
+                    "type": "string"
+                }
+            }
+        },
+        "IlsFlavour": {
+            "title": "IlsFlavour",
+            "description": " ",
+            "enum": [
+                "aleph",
+                "voyager",
+                "sierra",
+                "millennium",
+                "koha",
+                "tag907y",
+                "tag001",
+                "tagf990a",
+                "custom",
+                "none"
+            ],
+            "type": "string"
+        }
+    }
+}

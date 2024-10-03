@@ -1,0 +1,77 @@
+{
+    "title": "TaskConfiguration",
+    "type": "object",
+    "properties": {
+        "name": {
+            "title": "Name",
+            "type": "string"
+        },
+        "migrationTaskType": {
+            "title": "Migrationtasktype",
+            "type": "string"
+        },
+        "objectType": {
+            "title": "Objecttype",
+            "type": "string"
+        },
+        "files": {
+            "title": "Files",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/FileDefinition"
+            }
+        },
+        "batchSize": {
+            "title": "Batchsize",
+            "type": "integer"
+        },
+        "rerunFailedRecords": {
+            "title": "Rerunfailedrecords",
+            "description": "Toggles whether or not BatchPoster should try to rerun failed batches or just leave the failing records on disk.",
+            "default": true,
+            "type": "boolean"
+        },
+        "useSafeInventoryEndpoints": {
+            "title": "Usesafeinventoryendpoints",
+            "description": "Toggles the use of the safe/unsafe Inventory storage endpoints. Unsafe circumvents the Optimistic locking in FOLIO. Defaults to True (using the 'safe' options)",
+            "default": true,
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "name",
+        "migrationTaskType",
+        "objectType",
+        "files",
+        "batchSize"
+    ],
+    "definitions": {
+        "FileDefinition": {
+            "title": "FileDefinition",
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "title": "File name",
+                    "description": "Name of the file to be processed. The location of the file depends on the context",
+                    "default": "",
+                    "type": "string"
+                },
+                "discovery_suppressed": {
+                    "title": "Discovery suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "staff_suppressed": {
+                    "title": "Staff suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "service_point_id": {
+                    "title": "Service point ID",
+                    "default": "",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

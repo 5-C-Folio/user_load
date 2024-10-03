@@ -1,0 +1,129 @@
+{
+    "title": "TaskConfiguration",
+    "type": "object",
+    "properties": {
+        "name": {
+            "title": "Name",
+            "type": "string"
+        },
+        "migrationTaskType": {
+            "title": "Migrationtasktype",
+            "type": "string"
+        },
+        "hridHandling": {
+            "$ref": "#/definitions/HridHandling"
+        },
+        "files": {
+            "title": "Files",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/FileDefinition"
+            }
+        },
+        "holdingsMapFileName": {
+            "title": "Holdingsmapfilename",
+            "type": "string"
+        },
+        "locationMapFileName": {
+            "title": "Locationmapfilename",
+            "type": "string"
+        },
+        "defaultCallNumberTypeName": {
+            "title": "Defaultcallnumbertypename",
+            "type": "string"
+        },
+        "previouslyGeneratedHoldingsFiles": {
+            "title": "Previouslygeneratedholdingsfiles",
+            "default": [],
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "fallbackHoldingsTypeId": {
+            "title": "Fallbackholdingstypeid",
+            "type": "string"
+        },
+        "holdingsTypeUuidForBoundwiths": {
+            "title": "Holdings Type for Boundwith Holdings",
+            "description": "UUID for a Holdings type (set in Settings->Inventory) for Bound-with Holdings)",
+            "default": "",
+            "type": "string"
+        },
+        "callNumberTypeMapFileName": {
+            "title": "Callnumbertypemapfilename",
+            "type": "string"
+        },
+        "holdingsMergeCriteria": {
+            "title": "Holdingsmergecriteria",
+            "default": [
+                "instanceId",
+                "permanentLocationId",
+                "callNumber"
+            ],
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "resetHridSettings": {
+            "title": "Resethridsettings",
+            "default": false,
+            "type": "boolean"
+        },
+        "updateHridSettings": {
+            "title": "Update HRID settings",
+            "description": "At the end of the run, update FOLIO with the HRID settings",
+            "default": true,
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "name",
+        "migrationTaskType",
+        "hridHandling",
+        "files",
+        "holdingsMapFileName",
+        "locationMapFileName",
+        "defaultCallNumberTypeName",
+        "fallbackHoldingsTypeId"
+    ],
+    "definitions": {
+        "HridHandling": {
+            "title": "HridHandling",
+            "description": "Enum determining how the HRID generation should be handled.\n        - default: Enumerates the HRID, building on the current value in the HRID settings\n        - preserve001: Takes the 001 and uses this as the HRID.\n\n    Args:\n        str (_type_): _description_\n        Enum (_type_): _description_\n    ",
+            "enum": [
+                "default",
+                "preserve001"
+            ],
+            "type": "string"
+        },
+        "FileDefinition": {
+            "title": "FileDefinition",
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "title": "File name",
+                    "description": "Name of the file to be processed. The location of the file depends on the context",
+                    "default": "",
+                    "type": "string"
+                },
+                "discovery_suppressed": {
+                    "title": "Discovery suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "staff_suppressed": {
+                    "title": "Staff suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "service_point_id": {
+                    "title": "Service point ID",
+                    "default": "",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
