@@ -213,8 +213,6 @@ class BatchPoster(MigrationTaskBase):
         except Exception as e:
             logging.error(f"An error occurred: {e}")
 
-logging.error(f"An error occurred: {e}")
-
     def post_extra_data(self, row: str, num_records: int, failed_recs_file):
         (object_name, data) = row.split("\t")
         endpoint = self.get_extradata_endpoint(self.task_configuration, object_name, data)
