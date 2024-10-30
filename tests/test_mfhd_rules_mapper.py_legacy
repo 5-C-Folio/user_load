@@ -1,0 +1,87 @@
+import os
+from folio_migration_tools.rules_mapper_holdings import RulesMapperHoldings
+import unittest
+from lxml import etree
+import pymarc
+import json
+from collections import namedtuple
+from folioclient.FolioClient import FolioClient
+from types import SimpleNamespace
+
+
+class TestMFHDRulesMapper(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with open("./tests/test_config_rules.json") as settings_file:
+            cls.config = json.load(
+                settings_file,
+                object_hook=lambda d: namedtuple("X", d.keys())(*d.values()),
+            )
+            cls.folio = FolioClient(
+                cls.config.okapi_url,
+                cls.config.tenant_id,
+                cls.config.username,
+                cls.config.password,
+            )
+            args = SimpleNamespace(**{"instance_id_map": {}})
+            instance_id_map = {"017372388": {"id": "1bcca4f8-6502-4659-9ad3-3eb952f663db"}}
+            location_map = [{"folio_code": "UCOLB", "legacy_code": "SXSTK"}]
+            with open("./maps/mfhd_to_holdings_five_colleges.json", "r") as f:
+                d = json.load(f)
+            cls.mapper = RulesMapperHoldings(
+                cls.folio, instance_id_map, location_map, d["defaultLocationCode"], args
+            )
+            cls.holdings_schema = cls.mapper.holdings_json_schema
+
+            cls.mapper.mappings = d["rules"]
+
+    def default_map(self, file_name, xpath):
+        ns = {
+            "marc": "https://www.loc.gov/MARC21/slim",
+            "oai": "https://www.openarchives.org/OAI/2.0/",
+        }
+        file_path = f"./tests/test_data/mfhd/{file_name}"
+        record = pymarc.parse_xml_to_array(file_path)[0]
+        result = self.mapper.parse_hold(record, "source")
+        if self.config.validate_json_schema:
+            validate(result, self.instance_schema)
+        root = etree.parse(file_path)
+        data = str("")
+        for element in root.xpath(xpath, namespaces=ns):
+            data = " ".join([data, str(etree.tostring(element, pretty_print=True), "utf-8")])
+        # print(json.dumps(rec, indent=4, sort_keys=True))
+        return [result, data]
+
+    def test_simple_title(self):
+
+        xpath = xpath = "//marc:controlfield[@tag='001']"
+        rec = self.default_map("mfhd_test1.xml", xpath)
+        self.assertIsNotNone(rec[0]["metadata"])
+        self.assertEqual("Callnumber part 1 Callnumber part 2", rec[0]["callNumber"])
+        self.assertEqual("Callnumber prefix", rec[0]["callNumberPrefix"])
+        # self.assertEqual("", rec[0]["callNumberTypeId"])
+        self.assertEqual("Callnumber suffix", rec[0]["callNumberSuffix"])
+        self.assertEqual("Shelving title", rec[0]["shelvingTitle"])
+        self.assertEqual(9, len(rec[0]["notes"]))
+        self.assertEqual("1bcca4f8-6502-4659-9ad3-3eb952f663db", rec[0]["instanceId"])
+        self.assertEqual("hsn", rec[0]["holdingsStatements"][0]["statement"])
+        self.assertEqual("hsi", rec[0]["holdingsStatementsForIndexes"][0]["statement"])
+        self.assertEqual("hss note", rec[0]["holdingsStatementsForSupplements"][0]["note"])
+
+        print(json.dumps(rec[0], indent=4))
+
+    def test_missing_location(self):
+        xpath = xpath = "//marc:controlfield[@tag='001']"
+        rec = self.default_map("mfhd_test2.xml", xpath)
+        self.assertIsNotNone(rec[0]["metadata"])
+        self.assertEqual("e8c70705-0964-4911-9ddd-c3017367bed7", rec[0]["permanentLocationId"])
+
+    def test_no_location(self):
+        xpath = xpath = "//marc:controlfield[@tag='001']"
+        rec = self.default_map("mfhd_test_no_location.xml", xpath)
+        self.assertIsNotNone(rec[0]["metadata"])
+        self.assertEqual("e8c70705-0964-4911-9ddd-c3017367bed7", rec[0]["permanentLocationId"])
+
+
+if __name__ == "__main__":
+    unittest.main()
