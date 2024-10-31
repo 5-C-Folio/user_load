@@ -1,0 +1,143 @@
+{
+    "title": "TaskConfiguration",
+    "type": "object",
+    "properties": {
+        "name": {
+            "title": "Name",
+            "description": "Name of this migration task. The name is being used to call the specific task, and to distinguish tasks of similar types",
+            "type": "string"
+        },
+        "migrationTaskType": {
+            "title": "Migration task type",
+            "description": "The type of migration task you want to perform",
+            "type": "string"
+        },
+        "files": {
+            "title": "Source files",
+            "description": "List of MARC21 files with holdings records",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/FileDefinition"
+            }
+        },
+        "hridHandling": {
+            "title": "HRID Handling",
+            "description": "Setting to default will make FOLIO generate HRIDs and move the existing 001:s into a 035, concatenated with the 003. Choosing preserve001 means the 001:s will remain in place, and that they will also become the HRIDs",
+            "default": "default",
+            "allOf": [
+                {
+                    "$ref": "#/definitions/HridHandling"
+                }
+            ]
+        },
+        "deactivate035From001": {
+            "title": "Create 035 from 001 and 003",
+            "description": "This deactivates the FOLIO default functionality of moving the previous 001 into a 035, prefixed with the value from 003",
+            "default": false,
+            "type": "boolean"
+        },
+        "holdingsTypeUuidForBoundwiths": {
+            "title": "Holdings Type for Boundwith Holdings",
+            "description": "UUID for a Holdings type (set in Settings->Inventory) for Bound-with Holdings)",
+            "default": "",
+            "type": "string"
+        },
+        "boundwithRelationshipFilePath": {
+            "title": "Boundwith relationship file path",
+            "description": "Path to a file outlining Boundwith relationships, in the style of Voyager. A TSV file with MFHD_ID and BIB_ID headers and values",
+            "default": "",
+            "type": "string"
+        },
+        "createSourceRecords": {
+            "title": "Create source records",
+            "description": "Controls wheter or not to retain the MARC records in Source Record Storage.",
+            "default": true,
+            "type": "boolean"
+        },
+        "updateHridSettings": {
+            "title": "Update HRID settings",
+            "description": "At the end of the run, update FOLIO with the HRID settings",
+            "default": true,
+            "type": "boolean"
+        },
+        "resetHridSettings": {
+            "title": "Reset HRID settings",
+            "description": "Setting to true means the task will reset the HRID counters for this particular record type",
+            "default": false,
+            "type": "boolean"
+        },
+        "legacyIdMarcPath": {
+            "title": "Path to legacy id in the records",
+            "description": "The path to the field where the legacy id is located. Example syntax: '001' or '951$c'",
+            "type": "string"
+        },
+        "deduplicateHoldingsStatements": {
+            "title": "Deduplicate holdings statements",
+            "description": "If set to False, duplicate holding statements within the same record will remain in place",
+            "default": true,
+            "type": "boolean"
+        },
+        "locationMapFileName": {
+            "title": "Path to location map file",
+            "description": "Must be a TSV file located in the mapping_files folder",
+            "type": "string"
+        },
+        "defaultCallNumberTypeName": {
+            "title": "Default callnumber type name",
+            "description": "The name of the callnumber type that will be used as fallback",
+            "type": "string"
+        },
+        "fallbackHoldingsTypeId": {
+            "title": "Fallback holdings type id",
+            "description": "The UUID of the Holdings type that will be used for unmapped values",
+            "type": "string"
+        }
+    },
+    "required": [
+        "name",
+        "migrationTaskType",
+        "files",
+        "legacyIdMarcPath",
+        "locationMapFileName",
+        "defaultCallNumberTypeName",
+        "fallbackHoldingsTypeId"
+    ],
+    "definitions": {
+        "FileDefinition": {
+            "title": "FileDefinition",
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "title": "File name",
+                    "description": "Name of the file to be processed. The location of the file depends on the context",
+                    "default": "",
+                    "type": "string"
+                },
+                "discovery_suppressed": {
+                    "title": "Discovery suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "staff_suppressed": {
+                    "title": "Staff suppressed",
+                    "default": false,
+                    "type": "boolean"
+                },
+                "service_point_id": {
+                    "title": "Service point ID",
+                    "default": "",
+                    "type": "string"
+                }
+            }
+        },
+        "HridHandling": {
+            "title": "HridHandling",
+            "description": "Enum determining how the HRID generation should be handled.\n        - default: Enumerates the HRID, building on the current value in the HRID settings\n        - preserve001: Takes the 001 and uses this as the HRID.\n\n    Args:\n        str (_type_): _description_\n        Enum (_type_): _description_\n    ",
+            "enum": [
+                "default",
+                "preserve001"
+            ],
+            "type": "string"
+        }
+    }
+}
