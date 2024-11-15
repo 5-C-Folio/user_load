@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import os
 import sys
 import time
 import traceback
@@ -485,6 +486,19 @@ class BatchPoster(MigrationTaskBase):
                 self.start_datetime,
             )
         self.clean_out_empty_logs()
+
+    def count_failed_files_helper(folder_path):
+        try:
+            if os.path.isdir(folder_path):
+                file_count = sum(1 for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)))
+                logging.info("Failed records folder contains %d files", file_count)
+                return file_count
+            else:
+                logging.error("The path %s is not a valid directory.", folder_path)
+                return 0
+        except Exception as e:
+            logging.exception("Error occurred while counting files in %s", folder_path)
+            return 0
 
     def rerun_run(self):
         if self.task_configuration.rerun_failed_records and (self.num_failures > 0):
