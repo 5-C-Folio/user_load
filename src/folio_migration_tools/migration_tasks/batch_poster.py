@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+import os
 import sys
 import time
 import traceback
@@ -485,6 +486,7 @@ class BatchPoster(MigrationTaskBase):
                 self.start_datetime,
             )
         self.clean_out_empty_logs()
+
 
     def failed_record_number_helper (file_path):
         try:
