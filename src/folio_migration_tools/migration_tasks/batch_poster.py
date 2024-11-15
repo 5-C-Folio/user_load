@@ -487,18 +487,22 @@ class BatchPoster(MigrationTaskBase):
             )
         self.clean_out_empty_logs()
 
-    def count_failed_files_helper(folder_path):
-        try:
-            if os.path.isdir(folder_path):
-                file_count = sum(1 for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)))
-                logging.info("Failed records folder contains %d files", file_count)
-                return file_count
-            else:
-                logging.error("The path %s is not a valid directory.", folder_path)
-                return 0
-        except Exception as e:
-            logging.exception("Error occurred while counting files in %s", folder_path)
+    def failed_record_number_helper(file_path):
+        if not file_path or not isinstance(file_path, str):
+            print(f"Invalid file path: {file_path}")
             return 0
+        try:
+            with open(file_path, "r") as failed_file:
+                num_records = sum(1 for line in failed_file if line.strip())
+                print(f"Number of non-empty records: {num_records}")
+                return num_records
+        except FileNotFoundError:
+            print(f"Failed records file not found at {file_path}")
+            return 0
+        except Exception as e:
+            print(f"An error occurred while counting records: {e}")
+            return 0
+
 
     def rerun_run(self):
         if self.task_configuration.rerun_failed_records and (self.num_failures > 0):
