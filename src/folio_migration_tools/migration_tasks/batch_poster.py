@@ -510,8 +510,16 @@ class BatchPoster(MigrationTaskBase):
                 "Rerunning the %s failed records from the load with a batchsize of 1",
                 self.num_failures,
             )
+            file_name=str(self.folder_structure.failed_recs_path.name)
+            record_count = self.failed_record_number_helper(file_name)
             try:
-                self.task_configuration.batch_size = 1
+                batch_size=0
+                if record_count%2 == 0:
+                    batch_size= record_count/2
+                elif record_count%2 ==1:
+                    batch_size = (record_count+1)/2
+
+                self.task_configuration.batch_size = batch_size
                 self.task_configuration.files = [
                     FileDefinition(file_name=str(self.folder_structure.failed_recs_path.name))
                 ]
