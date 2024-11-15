@@ -487,8 +487,10 @@ class BatchPoster(MigrationTaskBase):
             )
         self.clean_out_empty_logs()
 
-
-    def failed_record_number_helper (file_path):
+    def failed_record_number_helper(file_path):
+        if not file_path or not isinstance(file_path, str):
+            print(f"Invalid file path: {file_path}")
+            return 0
         try:
             with open(file_path, "r") as failed_file:
                 num_records = sum(1 for line in failed_file if line.strip())
@@ -496,8 +498,10 @@ class BatchPoster(MigrationTaskBase):
                 return num_records
         except FileNotFoundError:
             print(f"Failed records file not found at {file_path}")
+            return 0
         except Exception as e:
             print(f"An error occurred while counting records: {e}")
+            return 0
 
 
     def rerun_run(self):
