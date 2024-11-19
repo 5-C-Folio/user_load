@@ -82,6 +82,10 @@ class FolderStructure:
             self.results_folder / f"failed_records{self.file_template}{self.time_stamp}.txt"
         )
 
+        self.invalid_json_path = (
+                self.results_folder / f"invalid_json_records{self.file_template}{self.time_stamp}.txt"
+        )
+
         self.transformation_extra_data_path = (
             self.results_folder / f"extradata{self.file_template}.extradata"
         )
