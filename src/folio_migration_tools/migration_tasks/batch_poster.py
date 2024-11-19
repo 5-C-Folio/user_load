@@ -336,109 +336,129 @@ class BatchPoster(MigrationTaskBase):
 
     def post_batch(self, batch, failed_recs_file, num_records, recursion_depth=0):
         response = self.do_post(batch)
-        if response.status_code == 201:
-            logging.info(
-                (
-                    "Posting successful! Total rows: %s Total failed: %s "
-                    "in %ss "
-                    "Batch Size: %s Request size: %s "
-                ),
-                num_records,
-                self.num_failures,
-                response.elapsed.total_seconds(),
-                len(batch),
-                get_req_size(response),
-            )
-        elif response.status_code == 200:
-            json_report = json.loads(response.text)
-            self.users_created += json_report.get("createdRecords", 0)
-            self.users_updated += json_report.get("updatedRecords", 0)
-            self.num_posted = self.users_updated + self.users_created
-            self.num_failures += json_report.get("failedRecords", 0)
-            if json_report.get("failedRecords", 0) > 0:
-                logging.error(
-                    "%s users in batch failed to load",
-                    json_report.get("failedRecords", 0),
-                )
-                write_failed_batch_to_file(batch, failed_recs_file)
-            if json_report.get("failedUsers", []):
-                logging.error("Errormessage: %s", json_report.get("error", []))
-                for failed_user in json_report.get("failedUsers"):
-                    logging.error(
-                        "User failed. %s\t%s\t%s",
-                        failed_user.get("username", ""),
-                        failed_user.get("externalSystemId", ""),
-                        failed_user.get("errorMessage", ""),
-                    )
-                    self.migration_report.add("Details", failed_user.get("errorMessage", ""))
-            logging.info(
-                (
-                    "Posting successful! Total rows: %s Total failed: %s "
-                    "created: %s updated: %s in %ss Batch Size: %s Request size: %s "
-                    "Message from server: %s"
-                ),
-                num_records,
-                self.num_failures,
-                self.users_created,
-                self.users_updated,
-                response.elapsed.total_seconds(),
-                len(batch),
-                get_req_size(response),
-                json_report.get("message", ""),
-            )
-        elif response.status_code == 422:
-            resp = json.loads(response.text)
-            raise TransformationRecordFailedError(
-                "",
-                f"HTTP {response.status_code}\t"
-                f"Request size: {get_req_size(response)}"
-                f"{datetime.utcnow().isoformat()} UTC\n",
-                json.dumps(resp, indent=4),
-            )
-        elif response.status_code == 400:
-            # Likely a json parsing error
-            logging.error(response.text)
-            raise TransformationProcessError("", "HTTP 400. Somehting is wrong. Quitting")
-        elif self.task_configuration.object_type == "SRS" and response.status_code >= 500:
-            logging.info(
-                "Post failed. Size: %s Waiting 30s until reposting. Number of tries: %s of 5",
-                get_req_size(response),
-                recursion_depth,
-            )
-            logging.info(response.text)
-            time.sleep(30)
-            if recursion_depth > 4:
-                raise TransformationRecordFailedError(
-                    "",
-                    f"HTTP {response.status_code}\t"
-                    f"Request size: {get_req_size(response)}"
-                    f"{datetime.utcnow().isoformat()} UTC\n",
-                    response.text,
-                )
-            else:
-                self.post_batch(batch, failed_recs_file, num_records, recursion_depth + 1)
-        elif (
-            response.status_code == 413 and "DB_ALLOW_SUPPRESS_OPTIMISTIC_LOCKING" in response.text
-        ):
-            logging.error(response.text)
-            raise TransformationProcessError("", response.text, "")
+        self.handle_response(response, batch, failed_recs_file, num_records, recursion_depth)
 
+    def handle_response(self, response, batch, failed_recs_file, num_records, recursion_depth):
+        handlers = {
+            201: self.handle_response_201,
+            200: self.handle_response_200,
+            422: self.handle_response_422,
+            400: self.handle_response_400,
+        }
+
+        if response.status_code in handlers:
+            handlers[response.status_code](response, batch, failed_recs_file, num_records, recursion_depth)
+        elif self.task_configuration.object_type == "SRS" and response.status_code >= 500:
+            self.handle_response_500(response, batch, failed_recs_file, num_records, recursion_depth)
+        elif response.status_code == 413 and "DB_ALLOW_SUPPRESS_OPTIMISTIC_LOCKING" in response.text:
+            self.handle_response_413(response)
         else:
-            try:
-                logging.info(response.text)
-                resp = json.dumps(response, indent=4)
-            except TypeError:
-                resp = response
-            except Exception:
-                logging.exception("something unexpected happened")
-                resp = response
+            self.handle_unexpected_response(response)
+
+    def handle_response_201(self, response, batch, failed_recs_file, num_records, recursion_depth):
+        logging.info(
+            (
+                "Posting successful! Total rows: %s Total failed: %s "
+                "in %ss Batch Size: %s Request size: %s"
+            ),
+            num_records,
+            self.num_failures,
+            response.elapsed.total_seconds(),
+            len(batch),
+            get_req_size(response),
+        )
+
+    def handle_response_200(self, response, batch, failed_recs_file, num_records, recursion_depth):
+        json_report = json.loads(response.text)
+        self.users_created += json_report.get("createdRecords", 0)
+        self.users_updated += json_report.get("updatedRecords", 0)
+        self.num_posted = self.users_updated + self.users_created
+        self.num_failures += json_report.get("failedRecords", 0)
+
+        if json_report.get("failedRecords", 0) > 0:
+            logging.error("%s users in batch failed to load", json_report.get("failedRecords", 0))
+            write_failed_batch_to_file(batch, failed_recs_file)
+
+        if json_report.get("failedUsers", []):
+            logging.error("Error messages: %s", json_report.get("error", []))
+            for failed_user in json_report.get("failedUsers", []):
+                logging.error(
+                    "User failed. %s\t%s\t%s",
+                    failed_user.get("username", ""),
+                    failed_user.get("externalSystemId", ""),
+                    failed_user.get("errorMessage", ""),
+                )
+                self.migration_report.add("Details", failed_user.get("errorMessage", ""))
+
+        logging.info(
+            (
+                "Posting successful! Total rows: %s Total failed: %s "
+                "created: %s updated: %s in %ss Batch Size: %s Request size: %s "
+                "Message from server: %s"
+            ),
+            num_records,
+            self.num_failures,
+            self.users_created,
+            self.users_updated,
+            response.elapsed.total_seconds(),
+            len(batch),
+            get_req_size(response),
+            json_report.get("message", ""),
+        )
+
+    def handle_response_422(self, response, batch, failed_recs_file, num_records, recursion_depth):
+        resp = json.loads(response.text)
+        raise TransformationRecordFailedError(
+            "",
+            f"HTTP {response.status_code}\t"
+            f"Request size: {get_req_size(response)}"
+            f"{datetime.utcnow().isoformat()} UTC\n",
+            json.dumps(resp, indent=4),
+        )
+
+    def handle_response_400(self, response, batch, failed_recs_file, num_records, recursion_depth):
+        logging.error(response.text)
+        raise TransformationProcessError("", "HTTP 400. Something is wrong. Quitting")
+
+    def handle_response_500(self, response, batch, failed_recs_file, num_records, recursion_depth):
+        logging.info(
+            "Post failed. Size: %s Waiting 30s until reposting. Number of tries: %s of 5",
+            get_req_size(response),
+            recursion_depth,
+        )
+        logging.info(response.text)
+        time.sleep(30)
+
+        if recursion_depth > 4:
             raise TransformationRecordFailedError(
                 "",
                 f"HTTP {response.status_code}\t"
                 f"Request size: {get_req_size(response)}"
                 f"{datetime.utcnow().isoformat()} UTC\n",
-                resp,
+                response.text,
             )
+        self.post_batch(batch, failed_recs_file, num_records, recursion_depth + 1)
+
+    def handle_response_413(self, response):
+        logging.error(response.text)
+        raise TransformationProcessError("", response.text, "")
+
+    def handle_unexpected_response(self, response):
+        try:
+            logging.info(response.text)
+            resp = json.dumps(response, indent=4)
+        except TypeError:
+            resp = response
+        except Exception:
+            logging.exception("Something unexpected happened")
+            resp = response
+        raise TransformationRecordFailedError(
+            "",
+            f"HTTP {response.status_code}\t"
+            f"Request size: {get_req_size(response)}"
+            f"{datetime.utcnow().isoformat()} UTC\n",
+            resp,
+        )
 
     def do_post(self, batch):
         path = self.api_info["api_endpoint"]
