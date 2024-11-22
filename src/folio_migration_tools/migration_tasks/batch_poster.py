@@ -3,13 +3,14 @@ import json
 import logging
 import os
 import sys
+
 import time
 import traceback
 from datetime import datetime
 from json import JSONDecodeError
 from typing import Annotated, List
 from uuid import uuid4
-import send_email
+
 
 
 import httpx
@@ -28,7 +29,7 @@ from folio_migration_tools.library_configuration import (
 from folio_migration_tools.migration_report import MigrationReport
 from folio_migration_tools.migration_tasks.migration_task_base import MigrationTaskBase
 from folio_migration_tools.task_configuration import AbstractTaskConfiguration
-
+from folio_migration_tools.migration_tasks import send_email
 
 def write_failed_batch_to_file(batch, file):
     for record in batch:
