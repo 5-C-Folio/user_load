@@ -9,6 +9,7 @@ from datetime import datetime
 from json import JSONDecodeError
 from typing import Annotated, List
 from uuid import uuid4
+import send_email
 
 
 import httpx
@@ -568,6 +569,8 @@ class BatchPoster(MigrationTaskBase):
                 ),
                 str(self.folder_structure.failed_recs_path),
             )
+            send_email.sendEmail("Failed Records from User_loads","Attached are failed records",self.folder_structure.failed_recs_path )
+
 
     def create_snapshot(self):
         snapshot = {
