@@ -9,6 +9,7 @@ from datetime import datetime
 from json import JSONDecodeError
 from typing import Annotated, List
 from uuid import uuid4
+from email import sender_email
 
 import httpx
 import i18n
@@ -186,33 +187,36 @@ class BatchPoster(MigrationTaskBase):
                 raise ee
 
     def post_record_batch(self, batch, failed_recs_file, row):
-        try:
-            if json.loads(row):
-                json_rec = json.loads(row.split("\t")[-1])
-                if (
-                    self.task_configuration.object_type in ["Instances", "Holdings", "Items"]
-                    and not self.task_configuration.use_safe_inventory_endpoints
-                ):
-                    self.migration_report.add_general_statistics(
-                        i18n.t("Set _version to -1 to enable upsert")
-                    )
-                    json_rec["_version"] = -1
-                if self.task_configuration.object_type == "SRS":
-                    json_rec["snapshotId"] = self.snapshot_id
-                if self.processed == 1:
-                    logging.info(json.dumps(json_rec, indent=True))
-                del json_rec["enrollmentDate"]
-                del json_rec["expirationDate"]
-                batch.append(json_rec)
-                if len(batch) == int(self.batch_size):
-                    self.post_batch(batch, failed_recs_file, self.processed)
-                    batch = []
-                return batch
+        with open(self.folder_structure.invalid_json_record, "w") as invalid_json_record:
+            try:
+                if json.loads(row):
+                    json_rec = json.loads(row.split("\t")[-1])
+                    if (
+                        self.task_configuration.object_type in ["Instances", "Holdings", "Items"]
+                        and not self.task_configuration.use_safe_inventory_endpoints
+                    ):
+                        self.migration_report.add_general_statistics(
+                            i18n.t("Set _version to -1 to enable upsert")
+                        )
+                        json_rec["_version"] = -1
+                    if self.task_configuration.object_type == "SRS":
+                        json_rec["snapshotId"] = self.snapshot_id
+                    if self.processed == 1:
+                        logging.info(json.dumps(json_rec, indent=True))
+                    del json_rec["enrollmentDate"]
+                    del json_rec["expirationDate"]
+                    batch.append(json_rec)
+                    if len(batch) == int(self.batch_size):
+                        self.post_batch(batch, failed_recs_file, self.processed)
+                        batch = []
+                    return batch
 
-        except JSONDecodeError:
-            print("Failed to decode JSON format.")
-        except Exception as e:
-            logging.error(f"An error occurred: {e}")
+            except JSONDecodeError:
+                print("Failed to decode JSON format.")
+                write_failed_batch_to_file(row, invalid_json_record)
+                sender_email("Invalid Json Records","Hello, attached is invalid Json record", invalid_json_record)
+            except Exception as e:
+                logging.error(f"An error occurred: {e}")
 
 
     def post_extra_data(self, row: str, num_records: int, failed_recs_file):
