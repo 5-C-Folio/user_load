@@ -219,6 +219,8 @@ class BatchPoster(MigrationTaskBase):
 
             except Exception as e:
                 logging.error(f"An error occurred: {e}")
+                
+        send_email("Invalid JSON List", "Attached Are Invalid JSON List", invalid_json_record)
 
 
     def post_extra_data(self, row: str, num_records: int, failed_recs_file):
