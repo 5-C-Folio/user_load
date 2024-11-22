@@ -9,7 +9,7 @@ from datetime import datetime
 from json import JSONDecodeError
 from typing import Annotated, List
 from uuid import uuid4
-from email import sender_email
+
 
 import httpx
 import i18n
