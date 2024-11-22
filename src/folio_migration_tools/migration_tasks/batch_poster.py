@@ -214,7 +214,7 @@ class BatchPoster(MigrationTaskBase):
             except JSONDecodeError:
                 print("Failed to decode JSON format.")
                 write_failed_batch_to_file(row, invalid_json_record)
-                sender_email("Invalid Json Records","Hello, attached is invalid Json record", invalid_json_record)
+
             except Exception as e:
                 logging.error(f"An error occurred: {e}")
 
